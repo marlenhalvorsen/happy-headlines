@@ -1,0 +1,135 @@
+services:
+  article-service:
+    build:
+      context: ./src/ArticleService
+    deploy: 
+      replicas: 3
+      
+    depends_on:
+      - postgres-europe
+      - postgres-africa
+      - postgres-antarctica
+      - postgres-asia
+      - postgres-north-america
+      - postgres-south-america
+      - postgres-oceania
+      - postgres-global
+      
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Europe: "Host=postgres-europe;Port=5432;Database=articles_europe;Username=postgres;Password=postgres"
+      ConnectionStrings__Africa: "Host=postgres-africa;Port=5432;Database=articles_africa;Username=postgres;Password=postgres"
+      ConnectionStrings__Antarctica: "Host=postgres-antarctica;Port=5432;Database=articles_antarctica;Username=postgres;Password=postgres"
+      ConnectionStrings__Asia: "Host=postgres-asia;Port=5432;Database=articles_asia;Username=postgres;Password=postgres"
+      ConnectionStrings__NorthAmerica: "Host=postgres-north-america;Port=5432;Database=articles_north_america;Username=postgres;Password=postgres"
+      ConnectionStrings__SouthAmerica: "Host=postgres-south-america;Port=5432;Database=articles_south_america;Username=postgres;Password=postgres"
+      ConnectionStrings__Oceania: "Host=postgres-oceania;Port=5432;Database=articles_oceania;Username=postgres;Password=postgres"
+      ConnectionStrings__Global: "Host=postgres-global;Port=5432;Database=articles_global;Username=postgres;Password=postgres"
+  
+  load-balancer:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - article-service
+    
+  postgres-europe:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_europe
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - europe_data:/var/lib/postgresql/data
+
+  postgres-africa:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_africa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - africa_data:/var/lib/postgresql/data
+
+  postgres-antarctica:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_antarctica
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - antarctica_data:/var/lib/postgresql/data
+
+  postgres-asia:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_asia
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - asia_data:/var/lib/postgresql/data
+
+  postgres-north-america:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_north_america
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - north_america_data:/var/lib/postgresql/data
+
+  postgres-south-america:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_south_america
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5437:5432"
+    volumes:
+      - south_america_data:/var/lib/postgresql/data
+
+  postgres-oceania:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_oceania
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5438:5432"
+    volumes:
+      - oceania_data:/var/lib/postgresql/data
+
+  postgres-global:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: articles_global
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - global_data:/var/lib/postgresql/data
+
+
+volumes:
+  europe_data:
+  africa_data:
+  antarctica_data:
+  asia_data:
+  north_america_data:
+  south_america_data:
+  oceania_data:
+  global_data:

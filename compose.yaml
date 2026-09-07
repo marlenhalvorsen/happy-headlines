@@ -122,7 +122,17 @@ services:
       - "5439:5432"
     volumes:
       - global_data:/var/lib/postgresql/data
-
+      
+  postgres-comments:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: comments
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5440:5432"
+    volumes:
+      - comments_data:/var/lib/postgresql/data
 
 volumes:
   europe_data:
@@ -133,3 +143,4 @@ volumes:
   south_america_data:
   oceania_data:
   global_data:
+  comments_data:

@@ -134,6 +134,17 @@ services:
     volumes:
       - comments_data:/var/lib/postgresql/data
 
+  postgres-profanity:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: profanity
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5441:5432"
+    volumes:
+      - profanity_data:/var/lib/postgresql/data
+  
 volumes:
   europe_data:
   africa_data:
@@ -144,3 +155,4 @@ volumes:
   oceania_data:
   global_data:
   comments_data:
+  profanity_data:

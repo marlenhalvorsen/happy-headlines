@@ -144,7 +144,43 @@ services:
       - "5441:5432"
     volumes:
       - profanity_data:/var/lib/postgresql/data
+ 
+  draft-service:
+    build:
+      context: ./src
+      dockerfile: DraftService/Dockerfile
+    depends_on:
+      - postgres-drafts
+    ports:
+      - "8081:8080"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: "Host=postgres-drafts;Port=5432;Database=drafts;Username=postgres;Password=postgres"
+
+  postgres-drafts:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: drafts
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5442:5432"
+    volumes:
+      - drafts_data:/var/lib/postgresql/data
   
+  seq:
+    image: datalust/seq:latest
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
+    ports:
+      - "5341:80"
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+
 volumes:
   europe_data:
   africa_data:
@@ -154,5 +190,6 @@ volumes:
   south_america_data:
   oceania_data:
   global_data:
+  drafts_data:
   comments_data:
   profanity_data:

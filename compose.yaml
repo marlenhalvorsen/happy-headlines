@@ -180,6 +180,20 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
 
+  newsletter-service:
+    build:
+      context: ./src
+      dockerfile: NewsletterService/Dockerfile
+    depends_on:
+      - rabbitmq
+      - zipkin
+    ports:
+      - "8083:8080"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ArticleService__BaseUrl: http://article-service:8080
+
+
   seq:
     image: datalust/seq:latest
     environment:

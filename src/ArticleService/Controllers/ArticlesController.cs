@@ -1,9 +1,8 @@
-//Implement the ArticleService and the ArticleDatabase.
-//The ArticleService needs four endpoints for Create, Read,
-//Update and Delete. It must be implemented as a REST-based API.
-
-using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 using ArticleService.Models;
+using ArticleService.Telemetry;
+using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Context.Propagation;
 
 namespace ArticleService;
 
@@ -17,7 +16,7 @@ public class ArticleController : ControllerBase
     {
         _articleService = articleService;
     }
-    
+
     [HttpPost("{region}")]
     public async Task<IActionResult> CreateArticle(
         string region,
@@ -28,11 +27,35 @@ public class ArticleController : ControllerBase
 
         return Ok(createdArticle);
     }
-    
+
     [HttpGet("{region}/{id}")]
     public async Task<IActionResult> FetchArticle(string region, int id)
     {
-        var article = await _articleService.FetchArticle(region, id);
+        var propagator = new TraceContextPropagator();
+
+        // Extract trace context sent by NewsletterService.
+        var propagationContext = propagator.Extract(
+            default,
+            Request,
+            (request, key) =>
+            {
+                if (request.Headers.TryGetValue(key, out var values))
+                {
+                    return values.ToArray();
+                }
+
+                return Array.Empty<string>();
+            });
+
+        // Continue the same distributed trace.
+        using var activity =
+            ArticleTelemetry.ActivitySource.StartActivity(
+                "Fetch Article",
+                ActivityKind.Server,
+                propagationContext.ActivityContext);
+
+        var article =
+            await _articleService.FetchArticle(region, id);
 
         if (article == null)
             return NotFound();
@@ -43,7 +66,8 @@ public class ArticleController : ControllerBase
     [HttpDelete("{region}/{id}")]
     public async Task<IActionResult> DeleteArticle(string region, int id)
     {
-        var deleted = await _articleService.DeleteArticle(region, id);
+        var deleted =
+            await _articleService.DeleteArticle(region, id);
 
         if (!deleted)
             return NotFound();

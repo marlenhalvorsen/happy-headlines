@@ -3,9 +3,9 @@ using System.Text.Json;
 using PublisherService.DTOs;
 using RabbitMQ.Client;
 using System.Diagnostics;
-using Monitor;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
+using PublisherService.Telemetry;
 
 namespace PublisherService.Messaging;
 
@@ -23,7 +23,8 @@ public class RabbitMqArticlePublisher : IArticlePublisher
 
     public async Task PublishAsync(PublishArticleDto article)
     {
-        using var activity = MonitorService.ActivitySource.StartActivity(
+
+        using var activity = PublisherTelemetry.ActivitySource.StartActivity(
             "Publish Article",
             ActivityKind.Producer);
 

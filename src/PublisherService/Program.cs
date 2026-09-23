@@ -1,6 +1,9 @@
 using PublisherService.Messaging;
 using PublisherService.Services;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using Monitor;
+using PublisherService.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +13,10 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddScoped<IPublishService, PublishService>();
 builder.Services.AddScoped<IArticlePublisher, RabbitMqArticlePublisher>();
-builder.Services.AddSingleton<MonitorService>();
+builder.Services.AddSingleton(
+    new MonitorService(
+        PublisherTelemetry.ServiceName,
+        PublisherTelemetry.ActivitySource));
 
 var app = builder.Build();
 

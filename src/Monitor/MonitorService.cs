@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -9,15 +8,11 @@ namespace Monitor;
 
 public class MonitorService
 {
-    public static readonly string ServiceName =
-        Assembly.GetCallingAssembly().GetName().Name ?? "Unknown";
+    public TracerProvider TracerProvider { get; }
 
-    public static readonly ActivitySource ActivitySource =
-        new ActivitySource(ServiceName);
-
-    public static TracerProvider TracerProvider;
-
-    public MonitorService()
+    public MonitorService(
+        string serviceName,
+        ActivitySource activitySource)
     {
         TracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddConsoleExporter()
@@ -26,11 +21,11 @@ public class MonitorService
                 options.Endpoint =
                     new Uri("http://zipkin:9411/api/v2/spans");
             })
-            .AddSource(ActivitySource.Name)
+            .AddSource(activitySource.Name)
             .SetSampler(new AlwaysOnSampler())
             .SetResourceBuilder(
                 ResourceBuilder.CreateDefault()
-                    .AddService(ServiceName))
+                    .AddService(serviceName))
             .Build();
 
         Log.Logger = new LoggerConfiguration()

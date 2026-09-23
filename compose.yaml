@@ -1,7 +1,8 @@
 services:
   article-service:
     build:
-      context: ./src/ArticleService
+      context: ./src
+      dockerfile: ArticleService/Dockerfile
     deploy: 
       replicas: 3
       
@@ -42,7 +43,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5443:5432"
     volumes:
       - europe_data:/var/lib/postgresql/data
 

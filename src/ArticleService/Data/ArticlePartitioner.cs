@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace ArticleService.Services;
+namespace ArticleService.Data;
 
 public class ArticlePartitioner
 {

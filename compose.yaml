@@ -167,7 +167,18 @@ services:
       - "5442:5432"
     volumes:
       - drafts_data:/var/lib/postgresql/data
-  
+    
+  publisher-service:
+    build:
+      context: ./src
+      dockerfile: PublisherService/Dockerfile
+    depends_on:
+      - rabbitmq
+    ports:
+      - "8082:8080"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+
   seq:
     image: datalust/seq:latest
     environment:
@@ -180,6 +191,12 @@ services:
     image: openzipkin/zipkin:latest
     ports:
       - "9411:9411"
+ 
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5673:5672"
+      - "15673:15672"
 
 volumes:
   europe_data:

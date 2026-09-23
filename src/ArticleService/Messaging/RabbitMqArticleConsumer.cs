@@ -2,13 +2,12 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using ArticleService.Models;
+using ArticleService.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Monitor;
 using OpenTelemetry.Context.Propagation;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using ArticleService.Telemetry;
 
 namespace ArticleService.Messaging;
 
@@ -35,11 +34,24 @@ public class RabbitMqArticleConsumer : BackgroundService
         _connection = await _factory.CreateConnectionAsync();
         _channel = await _connection.CreateChannelAsync();
 
+        // Create the fanout exchange.
+        await _channel.ExchangeDeclareAsync(
+            exchange: "article-exchange",
+            type: ExchangeType.Fanout,
+            durable: true);
+
+        // ArticleService has its own queue.
         await _channel.QueueDeclareAsync(
-            queue: "article-queue",
+            queue: "article-service-queue",
             durable: true,
             exclusive: false,
             autoDelete: false);
+
+        // Bind ArticleService's queue to the exchange.
+        await _channel.QueueBindAsync(
+            queue: "article-service-queue",
+            exchange: "article-exchange",
+            routingKey: "");
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
 
@@ -67,10 +79,11 @@ public class RabbitMqArticleConsumer : BackgroundService
                 });
 
             // Continue the same distributed trace.
-            using var activity = ArticleTelemetry.ActivitySource.StartActivity(
-                "Consume Article",
-                ActivityKind.Consumer,
-                propagationContext.ActivityContext);
+            using var activity =
+                ArticleTelemetry.ActivitySource.StartActivity(
+                    "Consume Article",
+                    ActivityKind.Consumer,
+                    propagationContext.ActivityContext);
 
             var body = eventArgs.Body.ToArray();
             var json = Encoding.UTF8.GetString(body);
@@ -85,16 +98,22 @@ public class RabbitMqArticleConsumer : BackgroundService
             using var scope = _scopeFactory.CreateScope();
 
             var articleService =
-                scope.ServiceProvider.GetRequiredService<Services.ArticleService>();
+                scope.ServiceProvider
+                    .GetRequiredService<Services.ArticleService>();
 
-            await articleService.CreateArticle("global", article);
+            await articleService.CreateArticle(
+                "global",
+                article);
         };
 
+        // Start consuming ArticleService's own queue.
         await _channel.BasicConsumeAsync(
-            queue: "article-queue",
+            queue: "article-service-queue",
             autoAck: true,
             consumer: consumer);
 
-        await Task.Delay(Timeout.Infinite, stoppingToken);
+        await Task.Delay(
+            Timeout.Infinite,
+            stoppingToken);
     }
 }

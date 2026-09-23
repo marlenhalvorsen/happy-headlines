@@ -1,11 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using PublisherService.DTOs;
-using RabbitMQ.Client;
-using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
+using PublisherService.DTOs;
 using PublisherService.Telemetry;
+using RabbitMQ.Client;
 
 namespace PublisherService.Messaging;
 
@@ -23,7 +23,6 @@ public class RabbitMqArticlePublisher : IArticlePublisher
 
     public async Task PublishAsync(PublishArticleDto article)
     {
-
         using var activity = PublisherTelemetry.ActivitySource.StartActivity(
             "Publish Article",
             ActivityKind.Producer);
@@ -34,11 +33,12 @@ public class RabbitMqArticlePublisher : IArticlePublisher
         await using var channel =
             await connection.CreateChannelAsync();
 
-        await channel.QueueDeclareAsync(
-            queue: "article-queue",
-            durable: true,
-            exclusive: false,
-            autoDelete: false);
+        // Fanout exchange sends the article to every queue
+        // that is bound to this exchange.
+        await channel.ExchangeDeclareAsync(
+            exchange: "article-exchange",
+            type: ExchangeType.Fanout,
+            durable: true);
 
         var json = JsonSerializer.Serialize(article);
         var body = Encoding.UTF8.GetBytes(json);
@@ -50,6 +50,7 @@ public class RabbitMqArticlePublisher : IArticlePublisher
 
         var propagator = Propagators.DefaultTextMapPropagator;
 
+        // Inject the current trace context into the RabbitMQ message.
         propagator.Inject(
             new PropagationContext(
                 activity?.Context ?? default,
@@ -57,14 +58,15 @@ public class RabbitMqArticlePublisher : IArticlePublisher
             properties,
             (props, key, value) =>
             {
-                props.Headers![key] = Encoding.UTF8.GetBytes(value);
+                props.Headers![key] =
+                    Encoding.UTF8.GetBytes(value);
             });
 
         await channel.BasicPublishAsync(
-            exchange: string.Empty,
-            routingKey: "article-queue",
+            exchange: "article-exchange",
+            routingKey: "",
             mandatory: false,
             basicProperties: properties,
-            body: body); 
+            body: body);
     }
 }
